@@ -24,8 +24,21 @@ const char *regs[] = {
 };
 
 void isa_reg_display() {
+  for (size_t i = 0; i < ARRLEN(regs); i++)
+  {
+    printf("%s: \t\t0x%08x \t\t%d\n", regs[i], gpr(i), gpr(i));
+  }
 }
 
 word_t isa_reg_str2val(const char *s, bool *success) {
+    for (size_t i = 0; i < ARRLEN(regs); i++)
+  {
+    if (strcmp(regs[i], s) == 0)
+    {
+      *success = true;
+      return gpr(i);
+    }
+  }
+  *success = false;
   return 0;
 }

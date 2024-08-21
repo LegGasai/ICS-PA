@@ -17,13 +17,6 @@
 
 #define NR_WP 32
 
-typedef struct watchpoint {
-  int NO;
-  struct watchpoint *next;
-
-  /* TODO: Add more members if necessary */
-
-} WP;
 
 static WP wp_pool[NR_WP] = {};
 static WP *head = NULL, *free_ = NULL;
@@ -41,3 +34,79 @@ void init_wp_pool() {
 
 /* TODO: Implement the functionality of watchpoint */
 
+WP* new_wp() {
+  WP *p = free_;
+  if (p == NULL){
+    panic("Error: Exceed maximum number of watchpoints: %d\n",NR_WP);
+  }
+  
+  free_ = free_->next;
+  p->next = head;
+  head = p;
+  return p;
+}
+
+void free_wp(WP *wp) {
+  WP *temp = head;
+  WP *pre = NULL;
+  while (temp != NULL) {
+    if(temp == wp){
+      break;
+    }
+    pre = temp;
+    temp = temp->next;
+  }
+  if(temp == NULL) {
+    panic("Error: cannot free the watchpoint with NO: %d\n",wp->NO);
+  }
+
+  if(pre == NULL){
+    head = temp->next;
+  }else{
+    pre->next = temp->next;
+  }
+
+  memset(wp->expr, 0, sizeof(wp->expr)); // Initialize expr to empty string
+  wp->value = 0; // Initialize value to 0
+  wp->next = free_;
+  free_ = wp;
+}
+
+WP* find_by_no(int no) {
+  WP *temp = head;
+  while (temp != NULL) {
+    if(temp->NO == no){
+      return temp;
+    }
+    temp = temp->next;
+  }
+  panic("Error: cannot find the watchpoint with NO: %d\n",no);
+}
+
+void display_wp() {
+  WP *temp = head;
+  while (temp != NULL) {
+    printf("NO: %-2d\t Expression: %-16s\t Value: %-8d\t0x%08x\n",temp->NO, temp->expr, temp->value, temp->value);
+    temp = temp->next;
+  }
+}
+
+bool check_wp_change() {
+  bool is_change = false;
+  WP *temp = head;
+  while (temp != NULL) {
+    bool s;
+    word_t new_v = expr(temp->expr, &s);
+    if(s){
+      if(new_v != temp->value){
+        is_change = true;
+        printf("WP %-2d : %-16s changed! \nNew Value = %-8d Old Value = %-8d\n", temp->NO, temp->expr, new_v, temp->value);
+        temp->value = new_v;
+      }
+    }else{
+      panic("Error: cannot calculate the expression: %s in watchpoint: %d\n", temp->expr, temp->NO);
+    }
+    temp = temp->next;
+  }
+  return is_change;
+}
