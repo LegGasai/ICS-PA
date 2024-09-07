@@ -75,3 +75,8 @@ uint64_t get_time();
 
 
 #endif
+
+// ----------- elf -----------
+void func_trace(int type, int rd, word_t target, word_t pc);
+
+void display_func_trace();

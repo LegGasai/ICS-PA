@@ -135,6 +135,18 @@ config WATCH_POINT
   bool "Enable watchpoint"
   default y
 
+config MEM_TRACE
+  bool "Enable memory tracer"
+  default n
+
+config FUNC_TRACE
+  bool "Enable function tracer"
+  default n
+
+config DEVICE_TRACE
+  bool "Enable I/O device tracer"
+  default n
+
 config TRACE_START
   depends on TRACE
   int "When tracing is enabled (unit: number of instructions)"

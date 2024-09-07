@@ -29,6 +29,28 @@ CPU_state cpu = {};
 uint64_t g_nr_guest_inst = 0;
 static uint64_t g_timer = 0; // unit: us
 static bool g_print_step = false;
+static size_t buffer_length = 20;
+static size_t buffer_ptr = 0;
+static char ring_buff[20][128];
+void add_trace_to_buffer(char *logbuf) {
+  if (logbuf == NULL) {
+    return;
+  }
+  strcpy(ring_buff[buffer_ptr], logbuf);
+  buffer_ptr ++;
+  buffer_ptr %= buffer_length;
+}
+void display_ring_buffer() {
+  printf("====== The nearest %ld instructions ======\n", buffer_length);
+  for (size_t i = buffer_ptr + 1; i < buffer_ptr + 1 + buffer_length; i++)
+  {
+    if(i % buffer_length == buffer_ptr){ 
+      printf("-->%s\n", ring_buff[i % buffer_length]);
+    }else {
+      printf("   %s\n", ring_buff[i % buffer_length]);
+    }
+  }
+}
 
 void device_update();
 
@@ -38,6 +60,7 @@ static void trace_and_difftest(Decode *_this, vaddr_t dnpc) {
 #ifdef CONFIG_ITRACE_COND
   if (ITRACE_COND) { log_write("%s\n", _this->logbuf); }
 #endif
+  IFDEF(CONFIG_ITRACE, add_trace_to_buffer(_this->logbuf));
   if (g_print_step) { IFDEF(CONFIG_ITRACE, puts(_this->logbuf)); }
   IFDEF(CONFIG_DIFFTEST, difftest_step(_this->pc, dnpc));
 
@@ -93,6 +116,7 @@ static void execute(uint64_t n) {
 }
 
 static void statistic() {
+  display_func_trace();
   IFNDEF(CONFIG_TARGET_AM, setlocale(LC_NUMERIC, ""));
 #define NUMBERIC_FMT MUXDEF(CONFIG_TARGET_AM, "%", "%'") PRIu64
   Log("host time spent = " NUMBERIC_FMT " us", g_timer);
@@ -102,6 +126,7 @@ static void statistic() {
 }
 
 void assert_fail_msg() {
+  display_ring_buffer();
   isa_reg_display();
   statistic();
 }

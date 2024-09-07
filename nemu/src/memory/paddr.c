@@ -18,6 +18,8 @@
 #include <device/mmio.h>
 #include <isa.h>
 
+# define READ_TYPE  "read"
+# define WRITE_TYPE "write"
 #if   defined(CONFIG_PMEM_MALLOC)
 static uint8_t *pmem = NULL;
 #else // CONFIG_PMEM_GARRAY
@@ -49,8 +51,18 @@ void init_mem() {
   IFDEF(CONFIG_MEM_RANDOM, memset(pmem, rand(), CONFIG_MSIZE));
   Log("physical memory area [" FMT_PADDR ", " FMT_PADDR "]", PMEM_LEFT, PMEM_RIGHT);
 }
+void memory_trace(char *type, paddr_t addr, word_t data, int len){
+#ifdef CONFIG_MEM_TRACE
+  if (strcmp(type, READ_TYPE) == 0) {
+    printf("[MTrace]: read in addr: 0x%08x with len: 0x%d\n", addr, len);
+  }else if(strcmp(type, WRITE_TYPE) == 0){
+    printf("[MTrace]: write to addr: 0x%08x data: 0x%08x with len: %d\n", addr, data, len);
+  }
+#endif
+}
 
 word_t paddr_read(paddr_t addr, int len) {
+  memory_trace(READ_TYPE, addr, 0, len);
   if (likely(in_pmem(addr))) return pmem_read(addr, len);
   IFDEF(CONFIG_DEVICE, return mmio_read(addr, len));
   out_of_bound(addr);
@@ -58,7 +70,9 @@ word_t paddr_read(paddr_t addr, int len) {
 }
 
 void paddr_write(paddr_t addr, int len, word_t data) {
+  memory_trace(WRITE_TYPE, addr, data, len);
   if (likely(in_pmem(addr))) { pmem_write(addr, len, data); return; }
   IFDEF(CONFIG_DEVICE, mmio_write(addr, len, data); return);
   out_of_bound(addr);
 }
+
