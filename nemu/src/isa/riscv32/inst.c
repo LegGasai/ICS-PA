@@ -54,6 +54,30 @@ static void decode_operand(Decode *s, int *rd, word_t *src1, word_t *src2, word_
   }
 }
 
+static word_t *csr_reg(word_t imm) {
+  switch (imm)
+  {
+  case 0x300:
+    return &(cpu.csrs.mstatus);
+  case 0x341:
+    return &(cpu.csrs.mepc);
+  case 0x342:
+    return &(cpu.csrs.mcause);
+  case 0x305:
+    return &(cpu.csrs.mtvec);
+  default:
+    panic("unknown csr");
+  }
+}
+#define csr(i) *csr_reg(i)
+
+static void do_ecall(Decode *s) {
+  bool success; 
+  word_t no = isa_reg_str2val("$a7", &success); 
+  s->dnpc = isa_raise_intr(no, s->pc);
+  IFDEF(CONFIG_EXCEPTION_TRACE, printf("[ETrace]: ecall at 0x%08x, Exception No: %u, goto 0x%08x\n", s->pc, no, s->dnpc));
+}
+
 static int decode_exec(Decode *s) {
   int rd = 0;
   word_t src1 = 0, src2 = 0, imm = 0;
@@ -118,7 +142,11 @@ static int decode_exec(Decode *s) {
   INSTPAT("??????? ????? ????? 001 ????? 01000 11", sh  , S, { Mw(imm + src1, 2, src2); });//
   INSTPAT("??????? ????? ????? 000 ????? 01000 11", sb  , S, { Mw(imm + src1, 1, src2); });//
   // P27 ok
-  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , N, printf("Ecall at pc: %u\n",s->pc));
+  INSTPAT("0000000 00000 00000 000 00000 11100 11", ecall  , I, { do_ecall(s); });
+  INSTPAT("??????? ????? ????? 001 ????? 11100 11", csrrw  , I, { R(rd) = csr(imm); csr(imm) = src1; });
+  INSTPAT("??????? ????? ????? 010 ????? 11100 11", csrrs  , I, { R(rd) = csr(imm); csr(imm) = src1 | imm; });
+  INSTPAT("0011000 00010 00000 000 00000 11100 11", mret   , I, { s->dnpc = cpu.csrs.mepc; });
+
   // P43 ok
   INSTPAT("0000001 ????? ????? 000 ????? 01100 11", mul   , R, { int64_t value = (int64_t)src1 * (int64_t)src2; R(rd) = value; });
   INSTPAT("0000001 ????? ????? 001 ????? 01100 11", mulh  , R, { int64_t value = SEXT(src1, 32) * SEXT(src2, 32); R(rd) = (uint32_t)(value >> 32); });

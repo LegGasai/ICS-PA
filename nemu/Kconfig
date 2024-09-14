@@ -143,6 +143,10 @@ config FUNC_TRACE
   bool "Enable function tracer"
   default n
 
+config EXCEPTION_TRACE
+  bool "Enable exception tracer"
+  default n
+
 config DEVICE_TRACE
   bool "Enable I/O device tracer"
   default n

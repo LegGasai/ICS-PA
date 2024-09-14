@@ -16,6 +16,10 @@
 #include <isa.h>
 #include <cpu/difftest.h>
 #include "../local-include/reg.h"
+#define CHECKDIFF(p) if (ref_r->p != cpu.p) { \
+  printf("difftest fail at " #p ", expect %#x got %#x\n", ref_r->p, cpu.p); \
+  return false; \
+}
 
 bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   bool flag = true;
@@ -23,9 +27,14 @@ bool isa_difftest_checkregs(CPU_state *ref_r, vaddr_t pc) {
   for (size_t i = 0; i < reg_cnt; i++){
     if(ref_r->gpr[i] != cpu.gpr[i]){
       flag = false;
+      printf("difftest fail at gpr[%ld], expect 0x%x got 0x%x\n", i, ref_r->gpr[i], cpu.gpr[i]);
       break;
     }
   }
+  CHECKDIFF(csrs.mtvec);
+  CHECKDIFF(csrs.mstatus);
+  CHECKDIFF(csrs.mepc);
+  //CHECKDIFF(csrs.mcause);
   if (flag && ref_r->pc == cpu.pc) {
     return true;
   }
