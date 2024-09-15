@@ -39,7 +39,7 @@ void int_to_str(char *s, int d){
 int printf(const char *fmt, ...) {
   va_list aq;
   va_start(aq, fmt);
-  char out[1024];
+  char out[2048];
   int ans = vsprintf(out, fmt, aq);
   va_end(aq);
   putstr(out);
