@@ -73,7 +73,7 @@ static word_t *csr_reg(word_t imm) {
 
 static void do_ecall(Decode *s) {
   bool success; 
-  word_t no = isa_reg_str2val("$a7", &success); 
+  word_t no = isa_reg_str2val("a7", &success); 
   s->dnpc = isa_raise_intr(no, s->pc);
   IFDEF(CONFIG_EXCEPTION_TRACE, printf("[ETrace]: ecall at 0x%08x, Exception No: %u, goto 0x%08x\n", s->pc, no, s->dnpc));
 }
