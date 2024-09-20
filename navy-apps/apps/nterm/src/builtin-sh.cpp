@@ -23,12 +23,16 @@ static void sh_prompt() {
 }
 
 static void sh_handle_cmd(const char *cmd) {
+  char exe_path [64];
+  strcpy(exe_path, cmd);
+  exe_path[strlen(exe_path) - 1] = '\0';
+  execvp(exe_path, NULL);
 }
 
 void builtin_sh_run() {
   sh_banner();
   sh_prompt();
-
+  setenv("PATH", "/bin", 0);
   while (1) {
     SDL_Event ev;
     if (SDL_PollEvent(&ev)) {

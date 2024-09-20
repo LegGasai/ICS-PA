@@ -3,16 +3,93 @@
 #include <assert.h>
 #include <string.h>
 #include <stdlib.h>
+#include <stdio.h>
 
 void SDL_BlitSurface(SDL_Surface *src, SDL_Rect *srcrect, SDL_Surface *dst, SDL_Rect *dstrect) {
   assert(dst && src);
   assert(dst->format->BitsPerPixel == src->format->BitsPerPixel);
+
+  int rec_w, rec_h, src_x, src_y, dst_x, dst_y;
+  if (dst->format->BitsPerPixel == 32) {
+    uint32_t * s_pixels = (uint32_t *)src->pixels;
+    uint32_t * d_pixels = (uint32_t *)dst->pixels; 
+    if(srcrect == NULL) {
+      // copy all
+      src_x = 0;
+      src_y = 0;
+      rec_w = src->w;
+      rec_h = src->h;
+    }else{
+      src_x = srcrect->x;
+      src_y = srcrect->y;
+      rec_h = srcrect->h;
+      rec_w = srcrect->w; 
+    }
+
+    if(dstrect == NULL) {
+      dst_x = 0;
+      dst_y = 0;
+    }else{
+      dst_x = dstrect->x;
+      dst_y = dstrect->y;
+    }
+
+    for (size_t i = 0; i < rec_h; i++){
+      for (size_t j = 0; j < rec_w; j++){
+        size_t d_offset = dst->w * (dst_y + i) + dst_x + j;
+        size_t s_offset = src->w * (src_y + i) + src_x + j;
+        d_pixels[d_offset] = s_pixels[s_offset];
+      }
+    }
+
+  }else{
+    return;
+  }
+
 }
 
 void SDL_FillRect(SDL_Surface *dst, SDL_Rect *dstrect, uint32_t color) {
+  uint32_t *pixels = (uint32_t *)dst->pixels;
+  int x,y,w,h;
+  if (dstrect == NULL){
+    x = 0;
+    y = 0;
+    w = dst->w;
+    h = dst->h;
+  }else{
+    x = dstrect->x;
+    y = dstrect->y;
+    w = dstrect->w;
+    h = dstrect->h;
+  }
+  for(int i = 0; i < h ; i++){
+    for (int j = 0; j < w; j++){
+      pixels[(y + i) * dst->w + x + j] = color;
+    }
+  }
+  
 }
 
 void SDL_UpdateRect(SDL_Surface *s, int x, int y, int w, int h) {
+  if(s->format->BitsPerPixel == 32){
+    //update
+    if(x==0 && y==0 && w==0 && h==0){
+      NDL_DrawRect((uint32_t *)s->pixels, 0 , 0, s->w, s->h);
+      return;
+    }else{
+      uint32_t *pixels = malloc(w * h * sizeof(uint32_t));
+      uint32_t *srcs = (uint32_t *)s->pixels;
+      for (size_t i = 0; i < h; i++){
+        memcpy(&pixels[i * w] ,&srcs[(y + i) * s->w + x], w * sizeof(uint32_t));
+      }
+      NDL_DrawRect(pixels, x, y, w, h);
+      free(pixels);
+      return;
+    }
+  }else if (s->format->BitsPerPixel == 8){
+    printf("Invalid BitsPerPixel\n");
+    assert(0);
+  }
 }
 
 // APIs below are already implemented.
